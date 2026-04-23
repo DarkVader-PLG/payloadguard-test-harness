@@ -36,7 +36,7 @@ jobs:
           REPORT_PATH: ${{ github.workspace }}/payloadguard-report.md
         run: |
           set +e
-          python -m payloadguard . "${{ github.head_ref }}" "${{ github.base_ref }}" \
+          payloadguard . "${{ github.head_ref }}" "${{ github.base_ref }}" \
             --pr-description "$PR_BODY" \
             --save-markdown "$REPORT_PATH"
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
@@ -92,7 +92,7 @@ jobs:
           PAYLOADGUARD_EXIT_CODE: ${{ steps.payloadguard.outputs.exit_code }}
           PAYLOADGUARD_REPORT_PATH: ${{ steps.payloadguard.outputs.report_path }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: python -m payloadguard.post_check_run
+        run: python -m post_check_run
 
       - name: Enforce verdict
         if: always()
