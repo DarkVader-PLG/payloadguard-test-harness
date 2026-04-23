@@ -1,3 +1,4 @@
+# PayloadGuard smoke test
 """
 Authentication module.
 Handles user login, logout, session management, and password validation.
