@@ -2,6 +2,15 @@
 """
 Authentication module.
 Handles user login, logout, session management, and password validation.
+
+This module provides the core identity primitives used across the application.
+It is intentionally kept self-contained — no external auth dependencies
+beyond the hashlib and secrets modules from the standard library.
+
+Structure:
+    - SessionManager: in-memory session lifecycle
+    - PasswordValidator: strength check + salted hashing
+    - Auth: top-level facade that ties both together
 """
 
 import hashlib
@@ -36,12 +45,6 @@ class SessionManager:
 
     def revoke(self, token: str) -> bool:
         return self._sessions.pop(token, None) is not None
-
-    def revoke_all(self, user_id: str) -> int:
-        to_revoke = [t for t, s in self._sessions.items() if s["user_id"] == user_id]
-        for token in to_revoke:
-            del self._sessions[token]
-        return len(to_revoke)
 
 
 class PasswordValidator:
@@ -100,15 +103,15 @@ class Auth:
     def logout(self, token: str) -> bool:
         return self.sessions.revoke(token)
 
-    def logout_all(self, username: str) -> int:
-        return self.sessions.revoke_all(username)
-
     def authenticate(self, token: str) -> Optional[str]:
         return self.sessions.validate(token)
 
-    def deactivate(self, username: str) -> bool:
-        if username not in self._users:
-            return False
-        self._users[username]["active"] = False
-        self.sessions.revoke_all(username)
-        return True
+    def get_user_count(self) -> int:
+        return len(self._users)
+
+    def get_session_count(self) -> int:
+        return len(self.sessions._sessions)
+
+    def is_active(self, username: str) -> bool:
+        user = self._users.get(username)
+        return bool(user and user["active"])
