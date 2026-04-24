@@ -67,44 +67,6 @@ export class ApiClient {
 }
 
 /**
- * High-level user service built on top of ApiClient.
- */
-export class UserService {
-  private client: ApiClient;
-
-  constructor(client: ApiClient) {
-    this.client = client;
-  }
-
-  async getUser(userId: string, token: string): Promise<UserRecord> {
-    const res = await this.client.get<UserRecord>(`/users/${userId}`, token);
-    return res.data;
-  }
-
-  async createUser(
-    username: string,
-    email: string,
-    token: string
-  ): Promise<UserRecord> {
-    const res = await this.client.post<UserRecord>(
-      "/users",
-      { username, email },
-      token
-    );
-    return res.data;
-  }
-
-  async deactivateUser(userId: string, token: string): Promise<boolean> {
-    return this.client.delete(`/users/${userId}`, token);
-  }
-
-  async listActiveUsers(token: string): Promise<UserRecord[]> {
-    const res = await this.client.get<UserRecord[]>("/users?active=true", token);
-    return res.data;
-  }
-}
-
-/**
  * Notification service for user-facing alerts.
  */
 export class NotificationService {

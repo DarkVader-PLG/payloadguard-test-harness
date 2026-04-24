@@ -6,46 +6,6 @@
 const BASE_URL = "/api/v1";
 
 /**
- * Fetches a user by ID.
- * @param {string} userId
- * @param {string} token - Auth token
- * @returns {Promise<object>}
- */
-async function fetchUser(userId, token) {
-  const response = await fetch(`${BASE_URL}/users/${userId}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-  });
-  if (!response.ok) {
-    throw new Error(`fetchUser failed: ${response.status}`);
-  }
-  return response.json();
-}
-
-/**
- * Creates a new user.
- * @param {object} userData - { username, password, email }
- * @param {string} token - Auth token
- * @returns {Promise<object>}
- */
-async function createUser(userData, token) {
-  const response = await fetch(`${BASE_URL}/users`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(userData),
-  });
-  if (!response.ok) {
-    throw new Error(`createUser failed: ${response.status}`);
-  }
-  return response.json();
-}
-
-/**
  * Deletes a user by ID.
  * @param {string} userId
  * @param {string} token - Auth token
@@ -105,4 +65,4 @@ async function listUsers(page = 1, limit = 20, token) {
   return response.json();
 }
 
-module.exports = { fetchUser, createUser, deleteUser, updateUser, listUsers };
+module.exports = { deleteUser, updateUser, listUsers };

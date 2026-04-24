@@ -41,14 +41,6 @@ func NewConfig() Config {
 	}
 }
 
-// NewServer creates a new Server from the provided Config.
-func NewServer(cfg Config) *Server {
-	return &Server{
-		config: cfg,
-		mux:    http.NewServeMux(),
-	}
-}
-
 // Start begins listening for HTTP requests.
 func (s *Server) Start() error {
 	if s.started {
@@ -64,11 +56,6 @@ func (s *Server) Start() error {
 func (s *Server) Stop() {
 	s.started = false
 	log.Println("Server stopped")
-}
-
-// HandleRequest registers a handler for the given path.
-func HandleRequest(mux *http.ServeMux, path string, handler http.HandlerFunc) {
-	mux.HandleFunc(path, handler)
 }
 
 // WriteJSON writes a JSON response to the ResponseWriter.
@@ -90,7 +77,7 @@ func WriteError(w http.ResponseWriter, status int, message string) {
 
 func main() {
 	cfg := NewConfig()
-	srv := NewServer(cfg)
+	srv := &Server{config: cfg, mux: http.NewServeMux()}
 	if err := srv.Start(); err != nil {
 		log.Fatalf("Server error: %v", err)
 	}
