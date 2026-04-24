@@ -32,7 +32,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: payloadguard-results
-          path: ${{ steps.payloadguard.outputs.json-report-path }}
+          path: payloadguard-report.json
+          if-no-files-found: warn
           retention-days: 90
 
       - name: Enforce verdict
