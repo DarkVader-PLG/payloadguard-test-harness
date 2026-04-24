@@ -1,6 +1,6 @@
 # PayloadGuard Test Harness — Branch Specification
 
-**Version:** 1.0  
+**Version:** 1.1  
 **Repo:** `payloadguard-test-harness`  
 **Reports land in:** `payload-consequence-analyser/test-reports/runs/`
 
@@ -29,7 +29,7 @@ Each branch is a controlled PR against `main`. For each:
 | Field | Value |
 |---|---|
 | **Purpose** | Baseline clean pass — nothing fires |
-| **Change** | Add 1 new function `health_check()` to `src/auth.py` (+8 lines) |
+| **Change** | Add 1 new function `health_check()` to `auth.py` (+8 lines) |
 | **PR description** | "Add health check endpoint to auth module" |
 | **Layers expected to fire** | None |
 | **Expected verdict** | ✅ SAFE [LOW] |
@@ -57,7 +57,7 @@ Each branch is a controlled PR against `main`. For each:
 | Field | Value |
 |---|---|
 | **Purpose** | Classic destructive merge — all layers fire |
-| **Change** | Delete `src/auth.py`, `src/database.py`, `tests/test_auth.py`, `tests/test_database.py`, `config/settings.yml` (5 files, ~250 lines) |
+| **Change** | Delete `auth.py`, `database.py`, `test_auth.py`, `test_database.py`, `settings.yml` (5 files, ~250 lines) |
 | **PR description** | "Remove legacy authentication and database modules" |
 | **Layers expected to fire** | L1 (file count), L2 (critical paths: tests, config), L3 (consequence), L4 (structural nodes gone) |
 | **Expected verdict** | ❌ DESTRUCTIVE [CRITICAL] |
@@ -71,7 +71,7 @@ Each branch is a controlled PR against `main`. For each:
 | Field | Value |
 |---|---|
 | **Purpose** | Exact replica of the incident that motivated PayloadGuard |
-| **Change** | Replace entire contents of `src/auth.py` and `src/database.py` with stubs (~200 lines deleted, ~10 added). Branch dated 300+ days old. |
+| **Change** | Replace entire contents of `auth.py` and `database.py` with stubs (~200 lines deleted, ~10 added). Branch dated 300+ days old. |
 | **PR description** | "Minor syntax fix in user module" |
 | **Layers expected to fire** | L1 (deletion ratio ~95%), L3 (consequence), L4 (structural nodes gone), L5a (temporal — drift score ~1500), L5b (semantic — "minor syntax fix" vs CRITICAL) |
 | **Expected verdict** | ❌ DESTRUCTIVE [CRITICAL] |
@@ -85,7 +85,7 @@ Each branch is a controlled PR against `main`. For each:
 | Field | Value |
 |---|---|
 | **Purpose** | Test exactly at the 20% structural deletion threshold |
-| **Change** | In `src/auth.py` (10 structural nodes total): delete exactly 2 methods (20%) |
+| **Change** | In `auth.py` (10 structural nodes total): delete exactly 2 methods (20%) |
 | **PR description** | "Remove deprecated session methods" |
 | **Layers expected to fire** | L4 (just at threshold) |
 | **Expected verdict** | ⚠️ CAUTION or → REVIEW [depends on other signals] |
@@ -141,7 +141,7 @@ Each branch is a controlled PR against `main`. For each:
 | Field | Value |
 |---|---|
 | **Purpose** | Empty PR description — UNVERIFIED path |
-| **Change** | Delete `src/database.py` (significant change) |
+| **Change** | Delete `database.py` (significant change) |
 | **PR description** | *(empty)* |
 | **Layers expected to fire** | L1, L2, L3, L4, L5b (UNVERIFIED — no description to analyse) |
 | **Expected verdict** | ❌ DESTRUCTIVE [CRITICAL] |
@@ -155,7 +155,7 @@ Each branch is a controlled PR against `main`. For each:
 | Field | Value |
 |---|---|
 | **Purpose** | Honest description of a genuinely destructive change |
-| **Change** | Delete `src/auth.py` entirely |
+| **Change** | Delete `auth.py` entirely |
 | **PR description** | "BREAKING CHANGE: Remove Auth module — replaced by external OAuth provider" |
 | **Layers expected to fire** | L1, L2, L3, L4 — L5b should return TRANSPARENT |
 | **Expected verdict** | ❌ DESTRUCTIVE [CRITICAL] |
@@ -178,6 +178,20 @@ Each branch is a controlled PR against `main`. For each:
 
 ---
 
+### T12 — `safe/large-rename`
+
+| Field | Value |
+|---|---|
+| **Purpose** | Detect false positives caused by class renaming — the rename gap |
+| **Change** | In `auth.py`: rename `Auth` → `Identity`, `SessionManager` → `SessionStore`, `PasswordValidator` → `CredentialValidator` (no logic changes) |
+| **PR description** | "Rename auth classes for consistency with identity domain terminology" |
+| **Layers expected to fire** | None (safe rename — no logic deleted) |
+| **Expected verdict** | ✅ SAFE [LOW] |
+| **Consistency target** | 3/3 identical |
+| **Notes** | **If this returns anything other than SAFE, it is a confirmed false positive.** L4 sees three classes disappear and cannot match them to the renamed versions — this is the known rename gap. Fix requires treating `change_type == 'R'` as modify and cross-referencing deleted/added node names across the full diff. |
+
+---
+
 ## Track 2 — Adversarial Branches
 
 *These are designed to probe limitations. Results are documented as known boundaries — not bugs — unless PayloadGuard catches them unexpectedly.*
@@ -189,7 +203,7 @@ Each branch is a controlled PR against `main`. For each:
 | Field | Value |
 |---|---|
 | **Purpose** | Deceptive description that avoids all benign keywords |
-| **Change** | Delete `src/auth.py` entirely (~120 lines) |
+| **Change** | Delete `auth.py` entirely (~120 lines) |
 | **PR description** | "Architectural consolidation: centralising identity management into the new OAuth gateway layer" |
 | **Layers expected to fire** | L1, L2, L3, L4 — L5b should return TRANSPARENT (no keyword match) |
 | **Expected verdict** | ❌ DESTRUCTIVE [CRITICAL] |
@@ -203,7 +217,7 @@ Each branch is a controlled PR against `main`. For each:
 | Field | Value |
 |---|---|
 | **Purpose** | Destructive changes hidden in renamed files (change_type = R) |
-| **Change** | Rename `src/auth.py` → `src/identity.py` with contents gutted (all classes removed) |
+| **Change** | Rename `auth.py` → `identity.py` with contents gutted (all classes removed) |
 | **PR description** | "Rename auth module to identity for consistency" |
 | **Layers expected to fire** | L1 (rename count), L5b (description seems benign) |
 | **Expected verdict** | → REVIEW or ⚠️ CAUTION |
@@ -231,7 +245,7 @@ Each branch is a controlled PR against `main`. For each:
 | Field | Value |
 |---|---|
 | **Purpose** | Large addition masks large deletion — ratio looks safe |
-| **Change** | Add 200 lines of new boilerplate to `src/api.js`, simultaneously delete `src/auth.py` (120 lines) |
+| **Change** | Add 200 lines of new boilerplate to `api.js`, simultaneously delete `auth.py` (120 lines) |
 | **PR description** | "Expand API module with new endpoints" |
 | **Layers expected to fire** | L1 (deleted files), L2 (critical path), L3, L4 |
 | **Expected verdict** | ⚠️ CAUTION or ❌ DESTRUCTIVE |
@@ -244,7 +258,7 @@ Each branch is a controlled PR against `main`. For each:
 | Field | Value |
 |---|---|
 | **Purpose** | Top-level class preserved, all methods inside deleted |
-| **Change** | In `src/auth.py`: keep `class Auth` but delete all methods inside it (`login`, `logout`, `register`, `authenticate`, `deactivate`) |
+| **Change** | In `auth.py`: keep `class Auth` but delete all methods inside it (`login`, `logout`, `register`, `authenticate`, `deactivate`) |
 | **PR description** | "Refactor Auth class interface" |
 | **Layers expected to fire** | L4 (methods are tracked as structural nodes) |
 | **Expected verdict** | ⚠️ CAUTION or ❌ DESTRUCTIVE |
@@ -271,7 +285,7 @@ Each branch is a controlled PR against `main`. For each:
 | Field | Value |
 |---|---|
 | **Purpose** | Nothing deleted — old files replaced by new files with destructive content |
-| **Change** | Delete `src/auth.py`, add `src/auth_v2.py` with 5 lines replacing 120. Net: additions > deletions. |
+| **Change** | Delete `auth.py`, add `auth_v2.py` with 5 lines replacing 120. Net: additions > deletions. |
 | **PR description** | "Upgrade auth module to v2" |
 | **Layers expected to fire** | L1 (deleted file), L2 (critical path), L3 |
 | **Expected verdict** | ⚠️ CAUTION or ❌ DESTRUCTIVE |
@@ -297,7 +311,7 @@ Each branch is a controlled PR against `main`. For each:
 | Field | Value |
 |---|---|
 | **Purpose** | Delete only config and CI files — no source code touched |
-| **Change** | Delete `config/settings.yml`, `.github/workflows/` (if present) |
+| **Change** | Delete `settings.yml`, `.github/workflows/` (if present) |
 | **PR description** | "Remove unused configuration files" |
 | **Layers expected to fire** | L2 (critical path patterns: config, .yml) |
 | **Expected verdict** | → REVIEW or ⚠️ CAUTION |
@@ -310,7 +324,7 @@ Each branch is a controlled PR against `main`. For each:
 | Field | Value |
 |---|---|
 | **Purpose** | Malformed or unusual encoding in file content |
-| **Change** | Modify `src/auth.py` to include null bytes, non-UTF8 sequences, or right-to-left override characters in comments |
+| **Change** | Modify `auth.py` to include null bytes, non-UTF8 sequences, or right-to-left override characters in comments |
 | **PR description** | "Update auth module comments" |
 | **Layers expected to fire** | Potentially none — or a graceful error |
 | **Expected verdict** | ✅ SAFE or graceful error — no crash |
@@ -360,6 +374,7 @@ a06-threshold-gaming-run1-20260423.json
 | T09 | `semantic/no-description` | Validation | DESTRUCTIVE | L1 L2 L3 L4 L5b(UNVERIFIED) |
 | T10 | `semantic/honest-critical` | Validation | DESTRUCTIVE | L1 L2 L3 L4 |
 | T11 | `multilang/structural-js-ts-go` | Validation | CAUTION/DESTRUCTIVE | L4 |
+| T12 | `safe/large-rename` | Validation | SAFE | None |
 | A01 | `adversarial/keyword-evasion` | Adversarial | DESTRUCTIVE | L1 L2 L3 L4 |
 | A02 | `adversarial/rename-smuggling` | Adversarial | REVIEW/CAUTION | L1 |
 | A03 | `adversarial/slow-deletion` | Adversarial | SAFE/REVIEW | None/L4 |
@@ -373,5 +388,5 @@ a06-threshold-gaming-run1-20260423.json
 
 ---
 
-*PayloadGuard Test Harness v1.0 — 21 branches, 2 tracks*  
+*PayloadGuard Test Harness v1.1 — 22 branches, 2 tracks*  
 *Built to find the limits before production does.*
