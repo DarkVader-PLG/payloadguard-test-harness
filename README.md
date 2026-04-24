@@ -14,17 +14,16 @@ This repo exists to:
 
 ```
 payloadguard-test-harness/
-├── src/
-│   ├── auth.py          # Python: Auth class, login/logout
-│   ├── database.py      # Python: Database class, connect/query/disconnect
-│   ├── api.js           # JS: fetchUser, createUser, deleteUser
-│   ├── services.ts      # TS: UserService, ApiClient interfaces
-│   └── utils.go         # Go: HandleRequest, NewConfig, Server
-├── tests/
-│   ├── test_auth.py     # 5 auth tests
-│   └── test_database.py # 5 database tests
-├── config/
-│   └── settings.yml     # App configuration
+├── .github/workflows/   # PayloadGuard CI workflow
+├── auth.py              # Python: Auth class, login/logout
+├── database.py          # Python: Database class, connect/query/disconnect
+├── api.js               # JS: fetchUser, createUser, deleteUser
+├── services.ts          # TS: UserService, ApiClient interfaces
+├── utils.go             # Go: HandleRequest, NewConfig, Server
+├── test_auth.py         # 5 auth tests
+├── test_database.py     # 5 database tests
+├── settings.yml         # App configuration
+├── TEST_SPEC.md         # 22 branch specifications
 └── requirements.txt
 ```
 
