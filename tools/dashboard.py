@@ -83,8 +83,13 @@ def load_summary():
         ) WHERE exit_code = expected_exit_code
     """) or 0
     runs   = scalar("SELECT COUNT(DISTINCT workflow_run_id) FROM scan_runs") or 0
-    last   = scalar("SELECT MAX(run_at) FROM scan_runs") or "—"
-    return total, passed, runs, last[:10] if last != "—" else last
+    row = query("""
+        SELECT run_at, workflow_run_id FROM scan_runs
+        ORDER BY run_at DESC LIMIT 1
+    """)
+    last_ts  = row[0]["run_at"][:16].replace("T", " ") if row else "—"
+    last_run = row[0]["workflow_run_id"] if row else None
+    return total, passed, runs, last_ts, last_run
 
 
 def load_matrix():
@@ -334,13 +339,28 @@ app.layout = dbc.Container(
 def update_summary(_):
     if not Path(DB_PATH).exists():
         return [dbc.Col(dbc.Alert("No database found. Run ingest.py first.", color="warning"))]
-    total, passed, runs, last = load_summary()
+    total, passed, runs, last_ts, last_run_id = load_summary()
     rate = f"{passed/total*100:.0f}%" if total else "—"
+    gh_url = (
+        f"https://github.com/DarkVader-PLG/payloadguard-test-harness/actions/runs/{last_run_id}"
+        if last_run_id else None
+    )
+    last_card = dbc.Card(
+        dbc.CardBody([
+            html.H2(
+                html.A(last_ts, href=gh_url, target="_blank", style={"fontSize": "1.4rem"})
+                if gh_url else last_ts,
+                className="text-primary mb-0",
+            ),
+            html.Small("Last run", className="text-muted"),
+        ]),
+        className="text-center shadow-sm",
+    )
     return [
         dbc.Col(stat_card("Total scans", total), width=3),
         dbc.Col(stat_card("Pass rate", rate, "success" if total and passed == total else "warning"), width=3),
         dbc.Col(stat_card("Regression runs", runs), width=3),
-        dbc.Col(stat_card("Last run", last), width=3),
+        dbc.Col(last_card, width=3),
     ]
 
 
