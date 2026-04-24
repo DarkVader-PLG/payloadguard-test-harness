@@ -27,6 +27,14 @@ jobs:
           private-key: ${{ secrets.PAYLOADGUARD_PRIVATE_KEY }}
           installation-id: ${{ secrets.PAYLOADGUARD_INSTALLATION_ID }}
 
+      - name: Upload JSON report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: payloadguard-results
+          path: ${{ steps.payloadguard.outputs.json-report-path }}
+          retention-days: 90
+
       - name: Enforce verdict
         if: always()
         env:
