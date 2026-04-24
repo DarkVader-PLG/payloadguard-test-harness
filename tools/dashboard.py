@@ -61,11 +61,17 @@ def scalar(sql, params=()):
 # ── Data loaders ──────────────────────────────────────────────────────────────
 
 def load_summary():
-    total  = scalar("SELECT COUNT(*) FROM scan_runs") or 0
+    total  = scalar("SELECT COUNT(DISTINCT test_case_id) FROM scan_runs WHERE test_case_id IS NOT NULL") or 0
     passed = scalar("""
-        SELECT COUNT(*) FROM scan_runs s
-        JOIN expected_verdicts e ON s.test_case_id = e.test_case_id
-        WHERE s.exit_code = e.expected_exit_code
+        SELECT COUNT(*) FROM (
+            SELECT s.test_case_id, s.exit_code, e.expected_exit_code
+            FROM scan_runs s
+            JOIN expected_verdicts e ON s.test_case_id = e.test_case_id
+            WHERE s.run_at = (
+                SELECT MAX(s2.run_at) FROM scan_runs s2
+                WHERE s2.test_case_id = s.test_case_id
+            )
+        ) WHERE exit_code = expected_exit_code
     """) or 0
     runs   = scalar("SELECT COUNT(DISTINCT workflow_run_id) FROM scan_runs") or 0
     last   = scalar("SELECT MAX(run_at) FROM scan_runs") or "—"
