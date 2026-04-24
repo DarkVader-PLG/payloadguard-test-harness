@@ -73,42 +73,4 @@ class Auth:
     Core authentication handler.
     Coordinates login, logout, and session lifecycle.
     """
-
-    def __init__(self):
-        self._users: dict[str, dict] = {}
-        self.sessions = SessionManager()
-        self.validator = PasswordValidator()
-
-    def register(self, username: str, password: str) -> bool:
-        if username in self._users:
-            return False
-        valid, _ = self.validator.validate_strength(password)
-        if not valid:
-            return False
-        hashed, salt = self.validator.hash(password)
-        self._users[username] = {"hashed": hashed, "salt": salt, "active": True}
-        return True
-
-    def login(self, username: str, password: str) -> Optional[str]:
-        user = self._users.get(username)
-        if not user or not user["active"]:
-            return None
-        if not self.validator.verify(password, user["hashed"], user["salt"]):
-            return None
-        return self.sessions.create(username)
-
-    def logout(self, token: str) -> bool:
-        return self.sessions.revoke(token)
-
-    def logout_all(self, username: str) -> int:
-        return self.sessions.revoke_all(username)
-
-    def authenticate(self, token: str) -> Optional[str]:
-        return self.sessions.validate(token)
-
-    def deactivate(self, username: str) -> bool:
-        if username not in self._users:
-            return False
-        self._users[username]["active"] = False
-        self.sessions.revoke_all(username)
-        return True
+    pass
