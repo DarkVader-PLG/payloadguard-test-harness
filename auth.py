@@ -1,4 +1,5 @@
 # PayloadGuard smoke test
+# Renamed from legacy auth module: Auth→Identity, SessionManager→SessionStore, PasswordValidator→CredentialValidator
 """
 Authentication module.
 Handles user login, logout, session management, and password validation.
@@ -12,6 +13,8 @@ from typing import Optional
 
 class SessionStore:
     """Manages active user sessions."""
+
+    SESSION_PREFIX = "session"
 
     def __init__(self):
         self._sessions: dict[str, dict] = {}
@@ -45,9 +48,10 @@ class SessionStore:
 
 
 class CredentialValidator:
-    """Validates and hashes passwords."""
+    """Validates and hashes user credentials."""
 
     MIN_LENGTH = 8
+    CREDENTIAL_VERSION = "v2"
 
     def validate_strength(self, password: str) -> tuple[bool, str]:
         if len(password) < self.MIN_LENGTH:
