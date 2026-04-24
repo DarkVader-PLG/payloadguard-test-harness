@@ -8,8 +8,17 @@ Usage:
 """
 import argparse
 import json
+import re
 import sqlite3
 from pathlib import Path
+
+# Must stay in sync with analyze.py _SECURITY_CRITICAL_PATTERNS
+_SECURITY_CRITICAL_PATTERNS = [
+    r"(^|/)auth[^/]*\.(py|js|ts)$",
+    r"(^|/)security[^/]*\.(py|js|ts)$",
+    r"(^|/)permission[^/]*\.(py|js|ts)$",
+    r"(^|/)authorization[^/]*\.(py|js|ts)$",
+]
 
 import dash
 import dash_bootstrap_components as dbc
@@ -61,11 +70,17 @@ def scalar(sql, params=()):
 # ── Data loaders ──────────────────────────────────────────────────────────────
 
 def load_summary():
-    total  = scalar("SELECT COUNT(*) FROM scan_runs") or 0
+    total  = scalar("SELECT COUNT(DISTINCT test_case_id) FROM scan_runs WHERE test_case_id IS NOT NULL") or 0
     passed = scalar("""
-        SELECT COUNT(*) FROM scan_runs s
-        JOIN expected_verdicts e ON s.test_case_id = e.test_case_id
-        WHERE s.exit_code = e.expected_exit_code
+        SELECT COUNT(*) FROM (
+            SELECT s.test_case_id, s.exit_code, e.expected_exit_code
+            FROM scan_runs s
+            JOIN expected_verdicts e ON s.test_case_id = e.test_case_id
+            WHERE s.run_at = (
+                SELECT MAX(s2.run_at) FROM scan_runs s2
+                WHERE s2.test_case_id = s.test_case_id
+            )
+        ) WHERE exit_code = expected_exit_code
     """) or 0
     runs   = scalar("SELECT COUNT(DISTINCT workflow_run_id) FROM scan_runs") or 0
     last   = scalar("SELECT MAX(run_at) FROM scan_runs") or "—"
@@ -138,55 +153,61 @@ def load_all_raw():
 
 def simulate_verdict(report, structural_ratio, min_nodes, stale_threshold, dangerous_threshold,
                      destructive_threshold=5, caution_threshold=3):
-    """Re-score a report with new thresholds. Returns (status, severity_score)."""
-    # Re-run L3 _assess_consequence equivalent
-    verdict_orig = report.get("verdict", {})
-    files_deleted = report.get("files", {}).get("deleted", 0)
-    lines_deleted = report.get("lines", {}).get("deleted", 0)
+    """Re-score a report with current analyze.py logic and adjustable thresholds."""
+    files_deleted  = report.get("files", {}).get("deleted", 0)
+    lines_deleted  = report.get("lines", {}).get("deleted", 0)
     deletion_ratio = report.get("lines", {}).get("deletion_ratio_percent", 0)
-    branch_age = report.get("temporal", {}).get("branch_age_days", 0)
+    branch_age     = report.get("temporal", {}).get("branch_age_days", 0)
 
-    flags = []
     score = 0.0
 
-    if branch_age > 365:
-        score += 3
-    elif branch_age > 180:
-        score += 2
-    elif branch_age > 90:
-        score += 1
+    # Age
+    if branch_age > 365:   score += 3
+    elif branch_age > 180: score += 2
+    elif branch_age > 90:  score += 1
 
+    # Critical and security file deletions
+    deleted_critical = report.get("deleted_files", {}).get("critical", [])
+    deleted_all      = report.get("deleted_files", {}).get("all", [])
+    crit_files = len(deleted_critical)
+    security_files = [f for f in deleted_all
+                      if any(re.search(p, f) for p in _SECURITY_CRITICAL_PATTERNS)]
+
+    # Deletion dimensions — ratio floor drops to 0 when critical files present
+    ratio_min_lines = 0 if crit_files > 0 else 100
     files_score = 3 if files_deleted > 50 else (2 if files_deleted > 20 else (1 if files_deleted > 10 else 0))
     ratio_score = 0
-    if lines_deleted >= 100:
+    if lines_deleted >= ratio_min_lines:
         ratio_score = 3 if deletion_ratio > 90 else (2 if deletion_ratio > 70 else (1 if deletion_ratio > 50 else 0))
     lines_score = 3 if lines_deleted > 50000 else (2 if lines_deleted > 10000 else (1 if lines_deleted > 5000 else 0))
-
     nonzero = sum(1 for s in (files_score, ratio_score, lines_score) if s > 0)
     score += min(4, max(files_score, ratio_score, lines_score) + (1 if nonzero >= 2 else 0))
 
-    # Re-evaluate structural with new thresholds
-    struct_critical = False
-    for flag in report.get("structural", {}).get("flagged_files", []):
-        m = flag.get("metrics", {})
-        ratio = m.get("structural_deletion_ratio", 0) / 100
-        count = m.get("deleted_node_count", 0)
-        if ratio > structural_ratio and count >= min_nodes:
+    # Structural — re-evaluate per-file with slider thresholds, then cross-file aggregation
+    flagged = report.get("structural", {}).get("flagged_files", [])
+    struct_critical = any(
+        m.get("structural_deletion_ratio", 0) / 100 > structural_ratio
+        and m.get("deleted_node_count", 0) >= min_nodes
+        for flag in flagged
+        for m in [flag.get("metrics", {})]
+    )
+    if not struct_critical and len(flagged) >= 2:
+        total_deleted = sum(f.get("metrics", {}).get("deleted_node_count", 0) for f in flagged)
+        if total_deleted >= min_nodes:
             struct_critical = True
-            break
-
     if struct_critical:
-        score += 3
+        score += 5
 
-    crit_files = len(report.get("deleted_files", {}).get("critical", []))
-    score += 2 if crit_files > 5 else (1 if crit_files > 0 else 0)
+    # Critical path files (+2 regardless of count)
+    score += 2 if crit_files > 0 else 0
 
-    if score >= destructive_threshold:
-        return "DESTRUCTIVE", score
-    elif score >= caution_threshold:
-        return "CAUTION", score
-    elif score >= 1:
-        return "REVIEW", score
+    # Security-critical file deletions (+5)
+    if security_files:
+        score += 5
+
+    if score >= destructive_threshold:   return "DESTRUCTIVE", score
+    elif score >= caution_threshold:     return "CAUTION", score
+    elif score >= 1:                     return "REVIEW", score
     return "SAFE", score
 
 
