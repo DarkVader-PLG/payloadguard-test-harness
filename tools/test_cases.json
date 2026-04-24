@@ -44,9 +44,9 @@
   "semantic/no-description": {
     "id": "T09",
     "category": "semantic",
-    "expected_verdict": "SAFE",
-    "expected_exit_code": 0,
-    "description": "No PR description — L5b should return UNVERIFIED. Diff itself is benign."
+    "expected_verdict": "DESTRUCTIVE",
+    "expected_exit_code": 2,
+    "description": "No PR description — L5b returns UNVERIFIED but diff deletes database.py (DESTRUCTIVE)."
   },
   "semantic/honest-critical": {
     "id": "T10",
@@ -121,8 +121,8 @@
   "adversarial/unicode-payload": {
     "id": "A10",
     "category": "adversarial",
-    "expected_verdict": "DESTRUCTIVE",
-    "expected_exit_code": 2,
-    "description": "Hostile Unicode encoding in comments alongside deletions — robustness test."
+    "expected_verdict": "SAFE",
+    "expected_exit_code": 0,
+    "description": "Hostile Unicode encoding in comments, minimal +4/-1 change — robustness/no-crash test."
   }
 }
