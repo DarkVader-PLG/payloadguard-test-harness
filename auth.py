@@ -1,7 +1,7 @@
 # PayloadGuard smoke test
 """
 Authentication module.
-Handles user login, logout, session management, and password validation.
+Handles user login, session management, and password validation.
 """
 
 import hashlib
@@ -37,12 +37,6 @@ class SessionManager:
     def revoke(self, token: str) -> bool:
         return self._sessions.pop(token, None) is not None
 
-    def revoke_all(self, user_id: str) -> int:
-        to_revoke = [t for t, s in self._sessions.items() if s["user_id"] == user_id]
-        for token in to_revoke:
-            del self._sessions[token]
-        return len(to_revoke)
-
 
 class PasswordValidator:
     """Validates and hashes passwords."""
@@ -71,7 +65,7 @@ class PasswordValidator:
 class Auth:
     """
     Core authentication handler.
-    Coordinates login, logout, and session lifecycle.
+    Coordinates login and session lifecycle.
     """
 
     def __init__(self):
@@ -97,18 +91,5 @@ class Auth:
             return None
         return self.sessions.create(username)
 
-    def logout(self, token: str) -> bool:
-        return self.sessions.revoke(token)
-
-    def logout_all(self, username: str) -> int:
-        return self.sessions.revoke_all(username)
-
     def authenticate(self, token: str) -> Optional[str]:
         return self.sessions.validate(token)
-
-    def deactivate(self, username: str) -> bool:
-        if username not in self._users:
-            return False
-        self._users[username]["active"] = False
-        self.sessions.revoke_all(username)
-        return True
