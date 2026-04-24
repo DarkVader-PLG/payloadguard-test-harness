@@ -10,12 +10,9 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -31,7 +28,7 @@ jobs:
 
       - name: Upload JSON report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: payloadguard-results
           path: payloadguard-report.json
