@@ -15,8 +15,8 @@ class SessionManager:
 
     def __init__(self):
         self._sessions: dict[str, dict] = {}
-        
-def create(self, user_id: str, ttl_minutes: int = 60) -> str:
+
+    def create(self, user_id: str, ttl_minutes: int = 60) -> str:
         token = secrets.token_hex(32)
         self._sessions[token] = {
             "user_id": user_id,
