@@ -124,5 +124,29 @@
     "expected_verdict": "SAFE",
     "expected_exit_code": 0,
     "description": "Hostile Unicode encoding in comments, minimal +4/-1 change — robustness/no-crash test."
+  },
+  "workflow-security/dependency-lock-tampering": {
+    "id": "T23",
+    "category": "workflow-security",
+    "expected_verdict": "DESTRUCTIVE",
+    "expected_exit_code": 2,
+    "status": "pending-2026-api",
+    "description": "Modifies workflow dependency lock file — validates interop with GitHub 2026 immutable dependency locking. Blocked pending API availability."
+  },
+  "workflow-security/policy-bypass": {
+    "id": "T24",
+    "category": "workflow-security",
+    "expected_verdict": "DESTRUCTIVE",
+    "expected_exit_code": 2,
+    "status": "pending-2026-api",
+    "description": "Workflow redefines GITHUB_TOKEN scopes to escalate permissions — validates policy enforcement detection. Blocked pending API availability."
+  },
+  "workflow-security/secret-exfiltration": {
+    "id": "T25",
+    "category": "workflow-security",
+    "expected_verdict": "DESTRUCTIVE",
+    "expected_exit_code": 2,
+    "status": "pending-2026-api",
+    "description": "Adds curl command to exfiltrate $SECRETS — complements GitHub 2026 native egress firewall as upstream block. Blocked pending API availability."
   }
 }
