@@ -136,7 +136,8 @@ def load_all_raw():
 
 # ── Threshold simulator ───────────────────────────────────────────────────────
 
-def simulate_verdict(report, structural_ratio, min_nodes, stale_threshold, dangerous_threshold):
+def simulate_verdict(report, structural_ratio, min_nodes, stale_threshold, dangerous_threshold,
+                     destructive_threshold=5, caution_threshold=3):
     """Re-score a report with new thresholds. Returns (status, severity_score)."""
     # Re-run L3 _assess_consequence equivalent
     verdict_orig = report.get("verdict", {})
@@ -180,9 +181,9 @@ def simulate_verdict(report, structural_ratio, min_nodes, stale_threshold, dange
     crit_files = len(report.get("deleted_files", {}).get("critical", []))
     score += 2 if crit_files > 5 else (1 if crit_files > 0 else 0)
 
-    if score >= 5:
+    if score >= destructive_threshold:
         return "DESTRUCTIVE", score
-    elif score >= 3:
+    elif score >= caution_threshold:
         return "CAUTION", score
     elif score >= 1:
         return "REVIEW", score
@@ -283,6 +284,19 @@ app.layout = dbc.Container(
                             id="sim-dangerous",
                             min=200, max=2000, step=100, value=1000,
                             marks={i: str(i) for i in range(200, 2200, 400)},
+                        ),
+                        html.Hr(),
+                        html.H6("DESTRUCTIVE score threshold", className="mt-3 text-danger"),
+                        dcc.Slider(
+                            id="sim-destructive-threshold",
+                            min=2, max=7, step=1, value=5,
+                            marks={i: str(i) for i in range(2, 8)},
+                        ),
+                        html.H6("CAUTION score threshold", className="mt-3 text-warning"),
+                        dcc.Slider(
+                            id="sim-caution-threshold",
+                            min=1, max=5, step=1, value=3,
+                            marks={i: str(i) for i in range(1, 6)},
                         ),
                     ], width=4),
                     dbc.Col(html.Div(id="sim-results"), width=8),
@@ -439,8 +453,10 @@ def update_history(tc_id):
     Input("sim-min-nodes", "value"),
     Input("sim-stale", "value"),
     Input("sim-dangerous", "value"),
+    Input("sim-destructive-threshold", "value"),
+    Input("sim-caution-threshold", "value"),
 )
-def update_simulator(struct_ratio, min_nodes, stale_th, dangerous_th):
+def update_simulator(struct_ratio, min_nodes, stale_th, dangerous_th, destructive_th, caution_th):
     if not Path(DB_PATH).exists():
         return dbc.Alert("No database. Run ingest.py first.", color="warning")
 
@@ -448,10 +464,20 @@ def update_simulator(struct_ratio, min_nodes, stale_th, dangerous_th):
     if not rows:
         return dbc.Alert("No data yet.", color="info")
 
-    struct_ratio_f = (struct_ratio or 20) / 100
-    min_nodes_i    = min_nodes or 3
-    stale_f        = float(stale_th or 250)
-    dangerous_f    = float(dangerous_th or 1000)
+    struct_ratio_f  = (struct_ratio or 20) / 100
+    min_nodes_i     = min_nodes or 3
+    stale_f         = float(stale_th or 250)
+    dangerous_f     = float(dangerous_th or 1000)
+    destructive_th  = destructive_th or 5
+    caution_th      = caution_th or 3
+
+    # Deduplicate: keep latest run per test case
+    seen = {}
+    for row in rows:
+        tc = row["test_case_id"]
+        if tc and tc not in seen:
+            seen[tc] = row
+    rows = list(seen.values())
 
     table_rows = []
     flips = 0
@@ -460,12 +486,13 @@ def update_simulator(struct_ratio, min_nodes, stale_th, dangerous_th):
         tc_id = row["test_case_id"]
         if not tc_id:
             continue
-        report  = row["report"]
+        report    = row["report"]
         orig_exit = row["exit_code"]
         expected  = EXPECTED.get(tc_id, 0)
 
         new_status, new_score = simulate_verdict(
-            report, struct_ratio_f, min_nodes_i, stale_f, dangerous_f
+            report, struct_ratio_f, min_nodes_i, stale_f, dangerous_f,
+            destructive_th, caution_th,
         )
         new_exit = 2 if new_status == "DESTRUCTIVE" else 0
         orig_status = report.get("verdict", {}).get("status", "?")
