@@ -9,7 +9,6 @@ import (
 	"time"
 )
 
-// Config holds application configuration.
 type Config struct {
 	Host     string
 	Port     int
@@ -17,21 +16,18 @@ type Config struct {
 	LogLevel string
 }
 
-// Server represents the HTTP application server.
 type Server struct {
 	config  Config
 	mux     *http.ServeMux
 	started bool
 }
 
-// Response is a standard JSON API response wrapper.
 type Response struct {
 	Status  int         `json:"status"`
 	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
 }
 
-// NewConfig returns a Config with sensible defaults.
 func NewConfig() Config {
 	return Config{
 		Host:     "0.0.0.0",
@@ -41,7 +37,6 @@ func NewConfig() Config {
 	}
 }
 
-// NewServer creates a new Server from the provided Config.
 func NewServer(cfg Config) *Server {
 	return &Server{
 		config: cfg,
@@ -49,7 +44,6 @@ func NewServer(cfg Config) *Server {
 	}
 }
 
-// Start begins listening for HTTP requests.
 func (s *Server) Start() error {
 	if s.started {
 		return fmt.Errorf("server already started")
@@ -60,32 +54,21 @@ func (s *Server) Start() error {
 	return http.ListenAndServe(addr, s.mux)
 }
 
-// Stop gracefully shuts down the server.
 func (s *Server) Stop() {
 	s.started = false
 	log.Println("Server stopped")
 }
 
-// HandleRequest registers a handler for the given path.
 func HandleRequest(mux *http.ServeMux, path string, handler http.HandlerFunc) {
 	mux.HandleFunc(path, handler)
 }
 
-// WriteJSON writes a JSON response to the ResponseWriter.
 func WriteJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		log.Printf("WriteJSON error: %v", err)
 	}
-}
-
-// WriteError writes a standardised error response.
-func WriteError(w http.ResponseWriter, status int, message string) {
-	WriteJSON(w, status, Response{
-		Status:  status,
-		Message: message,
-	})
 }
 
 func main() {

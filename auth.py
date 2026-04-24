@@ -105,10 +105,3 @@ class Auth:
 
     def authenticate(self, token: str) -> Optional[str]:
         return self.sessions.validate(token)
-
-    def deactivate(self, username: str) -> bool:
-        if username not in self._users:
-            return False
-        self._users[username]["active"] = False
-        self.sessions.revoke_all(username)
-        return True

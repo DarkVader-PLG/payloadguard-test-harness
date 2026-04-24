@@ -23,9 +23,6 @@ export interface Config {
   retries: number;
 }
 
-/**
- * Low-level HTTP client with retry logic.
- */
 export class ApiClient {
   private config: Config;
 
@@ -66,9 +63,6 @@ export class ApiClient {
   }
 }
 
-/**
- * High-level user service built on top of ApiClient.
- */
 export class UserService {
   private client: ApiClient;
 
@@ -104,9 +98,6 @@ export class UserService {
   }
 }
 
-/**
- * Notification service for user-facing alerts.
- */
 export class NotificationService {
   private baseUrl: string;
 
@@ -117,9 +108,5 @@ export class NotificationService {
   async sendEmail(to: string, subject: string, body: string): Promise<boolean> {
     console.log(`[NotificationService] Sending email to ${to}: ${subject}`);
     return true;
-  }
-
-  async sendAlert(userId: string, message: string): Promise<void> {
-    console.log(`[NotificationService] Alert for ${userId}: ${message}`);
   }
 }

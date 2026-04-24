@@ -99,7 +99,6 @@ class Database:
     def query(self, sql: str, params: Optional[list] = None) -> list[dict]:
         if not self._connected:
             raise RuntimeError("Not connected to database")
-        # Simulate query execution
         return []
 
     def execute(self, sql: str, params: Optional[list] = None) -> int:
@@ -114,15 +113,11 @@ class Database:
         try:
             yield self
         except Exception:
-            self._rollback()
             raise
         else:
             self._commit()
 
     def _commit(self) -> None:
-        pass
-
-    def _rollback(self) -> None:
         pass
 
     def table(self, name: str) -> QueryBuilder:
